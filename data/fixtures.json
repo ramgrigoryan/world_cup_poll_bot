@@ -1,0 +1,20 @@
+{
+  "fixtures": [
+    {
+      "id": "wc-2026-06-18-arg-ned",
+      "home_team": "Argentina",
+      "away_team": "Netherlands",
+      "kickoff": "2026-06-18T18:00:00+04:00",
+      "match_date": "2026-06-18",
+      "stage": "Group Stage"
+    },
+    {
+      "id": "wc-2026-06-18-bra-jpn",
+      "home_team": "Brazil",
+      "away_team": "Japan",
+      "kickoff": "2026-06-18T22:00:00+04:00",
+      "match_date": "2026-06-18",
+      "stage": "Group Stage"
+    }
+  ]
+}
