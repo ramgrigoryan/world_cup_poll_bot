@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,15 +15,21 @@ import (
 )
 
 type TelegramClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL         string
+	redactedBaseURL string
+	client          *http.Client
+	pollClient      *http.Client
 }
 
-func NewTelegramClient(token string) *TelegramClient {
+func NewTelegramClient(token string, listenTimeout time.Duration) *TelegramClient {
 	return &TelegramClient{
-		baseURL: fmt.Sprintf("https://api.telegram.org/bot%s", token),
+		baseURL:         fmt.Sprintf("https://api.telegram.org/bot%s", token),
+		redactedBaseURL: "https://api.telegram.org/bot<redacted>",
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+		},
+		pollClient: &http.Client{
+			Timeout: pollHTTPTimeout(listenTimeout),
 		},
 	}
 }
@@ -38,9 +45,9 @@ func (c *TelegramClient) GetUpdates(ctx context.Context, offset int64, timeout t
 		return nil, err
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.pollClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, c.sanitizeError(err)
 	}
 	defer resp.Body.Close()
 
@@ -60,6 +67,15 @@ func (c *TelegramClient) SendMessage(ctx context.Context, chatID int64, text str
 	body := map[string]any{
 		"chat_id": chatID,
 		"text":    text,
+	}
+	return c.postJSON(ctx, "/sendMessage", body, nil)
+}
+
+func (c *TelegramClient) SendReply(ctx context.Context, chatID int64, replyToMessageID int64, text string) error {
+	body := map[string]any{
+		"chat_id":             chatID,
+		"text":                text,
+		"reply_to_message_id": replyToMessageID,
 	}
 	return c.postJSON(ctx, "/sendMessage", body, nil)
 }
@@ -128,7 +144,7 @@ func (c *TelegramClient) postJSON(ctx context.Context, endpoint string, payload 
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return err
+		return c.sanitizeError(err)
 	}
 	defer resp.Body.Close()
 
@@ -141,4 +157,24 @@ func (c *TelegramClient) postJSON(ctx context.Context, endpoint string, payload 
 		return nil
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
+}
+
+func pollHTTPTimeout(listenTimeout time.Duration) time.Duration {
+	timeout := listenTimeout + 15*time.Second
+	if timeout < 45*time.Second {
+		return 45 * time.Second
+	}
+	return timeout
+}
+
+func (c *TelegramClient) sanitizeError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	text := strings.ReplaceAll(err.Error(), c.baseURL, c.redactedBaseURL)
+	if text == err.Error() {
+		return err
+	}
+	return errors.New(text)
 }

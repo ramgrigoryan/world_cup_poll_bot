@@ -9,7 +9,7 @@ This is a basic Telegram bot written in Go for one or more Telegram group chats.
 ## What it does
 
 - Fetches live World Cup fixtures from a public schedule page
-- Uses an Armenia-time match window from 20:00 to 08:00 the next day
+- Uses an Armenia-time match window from 19:00 to 12:00 the next day
 - Stores poll answers persistently in `data/state.json`
 - Lets admins settle matches with final scores
 - Calculates a leaderboard across all settled matches
@@ -43,8 +43,8 @@ It parses the public match schedule markup and converts kickoff times into `Asia
 
 For a requested date like `2026-06-18`, the bot treats the active match window as:
 
-- start: `2026-06-18 20:00` Armenia time
-- end: `2026-06-19 08:00` Armenia time
+- start: `2026-06-18 19:00` Armenia time
+- end: `2026-06-19 12:00` Armenia time
 
 That same window is used by both `/matches` and `/createpolls`.
 

@@ -47,9 +47,9 @@ func commandsForLocale(loc locale) []BotCommand {
 			{Command: "help", Description: "Показать команды"},
 			{Command: "chatid", Description: "Показать ID чата"},
 			{Command: "lang", Description: "Установить язык бота: en, ru, hy"},
-			{Command: "createpolls", Description: "Создать опросы на окно 20:00-08:00"},
+			{Command: "createpolls", Description: "Создать опросы на окно 19:00-12:00"},
 			{Command: "guesses", Description: "Показать прогнозы"},
-			{Command: "matches", Description: "Показать матчи на окно 20:00-08:00"},
+			{Command: "matches", Description: "Показать матчи на окно 19:00-12:00"},
 			{Command: "nextmatch", Description: "Показать следующий матч"},
 			{Command: "settlematch", Description: "Завершить матч"},
 			{Command: "leaderboard", Description: "Показать таблицу лидеров"},
@@ -59,9 +59,9 @@ func commandsForLocale(loc locale) []BotCommand {
 			{Command: "help", Description: "Ցույց տալ հրամանները"},
 			{Command: "chatid", Description: "Ցույց տալ չատի ID-ն"},
 			{Command: "lang", Description: "Դնել բոտի լեզուն՝ en, ru, hy"},
-			{Command: "createpolls", Description: "Ստեղծել հարցումներ 20:00-08:00 պատուհանի համար"},
+			{Command: "createpolls", Description: "Ստեղծել հարցումներ 19:00-12:00 պատուհանի համար"},
 			{Command: "guesses", Description: "Ցույց տալ կանխատեսումները"},
-			{Command: "matches", Description: "Ցույց տալ խաղերը 20:00-08:00 պատուհանի համար"},
+			{Command: "matches", Description: "Ցույց տալ խաղերը 19:00-12:00 պատուհանի համար"},
 			{Command: "nextmatch", Description: "Ցույց տալ հաջորդ խաղը"},
 			{Command: "settlematch", Description: "Փակել խաղը"},
 			{Command: "leaderboard", Description: "Ցույց տալ առաջատարներին"},
@@ -71,9 +71,9 @@ func commandsForLocale(loc locale) []BotCommand {
 			{Command: "help", Description: "Show commands"},
 			{Command: "chatid", Description: "Show chat ID"},
 			{Command: "lang", Description: "Set bot language: en, ru, hy"},
-			{Command: "createpolls", Description: "Create polls for the 20:00-08:00 window"},
+			{Command: "createpolls", Description: "Create polls for the 19:00-12:00 window"},
 			{Command: "guesses", Description: "Show guesses"},
-			{Command: "matches", Description: "Show matches for the 20:00-08:00 window"},
+			{Command: "matches", Description: "Show matches for the 19:00-12:00 window"},
 			{Command: "nextmatch", Description: "Show the next match"},
 			{Command: "settlematch", Description: "Settle a match"},
 			{Command: "leaderboard", Description: "Show the leaderboard"},
@@ -87,9 +87,9 @@ func helpText(loc locale) string {
 		return strings.Join([]string{
 			"Команды:",
 			"/chatid - показать ID текущего чата",
-			"/createpolls [YYYY-MM-DD] - создать опросы на окно 20:00-08:00 по Армении",
+			"/createpolls [YYYY-MM-DD] - создать опросы на окно 19:00-12:00 по Армении",
 			"/guesses - показать прогнозы на ближайшие матчи",
-			"/matches [YYYY-MM-DD] - показать матчи на окно 20:00-08:00 по Армении",
+			"/matches [YYYY-MM-DD] - показать матчи на окно 19:00-12:00 по Армении",
 			"/nextmatch - показать ближайший матч",
 			"/settlematch MATCH_ID HOME_SCORE AWAY_SCORE - завершить матч",
 			"/leaderboard - показать таблицу лидеров",
@@ -98,9 +98,9 @@ func helpText(loc locale) string {
 		return strings.Join([]string{
 			"Հրամաններ՝",
 			"/chatid - ցույց տալ այս չատի ID-ն",
-			"/createpolls [YYYY-MM-DD] - ստեղծել հարցումներ Երևանի 20:00-08:00 պատուհանի համար",
+			"/createpolls [YYYY-MM-DD] - ստեղծել հարցումներ Երևանի 19:00-12:00 պատուհանի համար",
 			"/guesses - ցույց տալ մոտակա խաղերի կանխատեսումները",
-			"/matches [YYYY-MM-DD] - ցույց տալ Երևանի 20:00-08:00 խաղերը",
+			"/matches [YYYY-MM-DD] - ցույց տալ Երևանի 19:00-12:00 խաղերը",
 			"/nextmatch - ցույց տալ հաջորդ խաղը",
 			"/settlematch MATCH_ID HOME_SCORE AWAY_SCORE - փակել խաղը",
 			"/leaderboard - ցույց տալ առաջատարների աղյուսակը",
@@ -110,9 +110,9 @@ func helpText(loc locale) string {
 			"Commands:",
 			"/chatid - show the current chat ID",
 			"/lang [en|ru|hy] - set the bot language for this chat",
-			"/createpolls [YYYY-MM-DD] - create polls for the Armenia window 20:00 to next-day 08:00",
+			"/createpolls [YYYY-MM-DD] - create polls for the Armenia window 19:00 to next-day 12:00",
 			"/guesses - show stored guesses for upcoming matches",
-			"/matches [YYYY-MM-DD] - list live matches for the Armenia window 20:00 to next-day 08:00",
+			"/matches [YYYY-MM-DD] - list live matches for the Armenia window 19:00 to next-day 12:00",
 			"/nextmatch - show the next upcoming World Cup match",
 			"/settlematch MATCH_ID HOME_SCORE AWAY_SCORE - settle one match",
 			"/leaderboard - show standings",
@@ -196,6 +196,17 @@ func textOnlyAdminsCanCreate(loc locale) string {
 		return "Միայն ադմինները կարող են ստեղծել հարցումներ։"
 	default:
 		return "Only admins can create polls."
+	}
+}
+
+func textOnlyAdminsCanChangeLanguage(loc locale) string {
+	switch loc {
+	case localeRU:
+		return "Только администраторы могут менять язык группы."
+	case localeHY:
+		return "Միայն ադմինները կարող են փոխել խմբի լեզուն։"
+	default:
+		return "Only admins can change the group language."
 	}
 }
 
@@ -287,14 +298,25 @@ func textNoFixtures(loc locale, start, end time.Time) string {
 	}
 }
 
-func textPollsAlreadyCreated(loc locale, link string) string {
+func textPollsAlreadyCreated(loc locale) string {
 	switch loc {
 	case localeRU:
-		return "Опросы уже созданы для этого окна. Перейти: " + link
+		return "Опросы уже созданы для этого окна. Ответьте на сообщение с опросом в этом чате."
 	case localeHY:
-		return "Այս պատուհանի հարցումներն արդեն ստեղծված են։ Անցիր այստեղ՝ " + link
+		return "Այս պատուհանի հարցումներն արդեն ստեղծված են։ Պատասխանը տես այս չատի հարցման հաղորդագրության վրա։"
 	default:
-		return "Polls were already created for this window. Jump here: " + link
+		return "Polls were already created for this window. See the replied poll message in this chat."
+	}
+}
+
+func textPollsAlreadyCreatedFallback(loc locale) string {
+	switch loc {
+	case localeRU:
+		return "Опросы уже созданы для этого окна в этом чате."
+	case localeHY:
+		return "Այս պատուհանի հարցումներն արդեն ստեղծված են այս չատում։"
+	default:
+		return "Polls were already created for this window in this chat."
 	}
 }
 

@@ -43,7 +43,7 @@ func NewApp(cfg Config) (*App, error) {
 	return &App{
 		cfg:      cfg,
 		store:    store,
-		client:   NewTelegramClient(cfg.Token),
+		client:   NewTelegramClient(cfg.Token, cfg.ListenTimeout),
 		fixtures: NewFixtureProvider(cfg.FixturesSourceURL, cfg.TimeZone),
 	}, nil
 }
@@ -55,6 +55,7 @@ func (a *App) Run(ctx context.Context) error {
 	go a.runDailyScheduler(ctx)
 
 	offset := a.store.LastUpdateID() + 1
+	backoff := 3 * time.Second
 	for {
 		select {
 		case <-ctx.Done():
@@ -68,9 +69,16 @@ func (a *App) Run(ctx context.Context) error {
 				return nil
 			}
 			log.Printf("get updates: %v", err)
-			time.Sleep(3 * time.Second)
+			time.Sleep(backoff)
+			if backoff < 30*time.Second {
+				backoff *= 2
+				if backoff > 30*time.Second {
+					backoff = 30 * time.Second
+				}
+			}
 			continue
 		}
+		backoff = 3 * time.Second
 
 		for _, update := range updates {
 			if err := a.handleUpdate(ctx, update); err != nil {
@@ -145,7 +153,7 @@ func (a *App) handleMessage(ctx context.Context, message Message) error {
 			return a.client.SendMessage(ctx, message.Chat.ID, textVerifyAdminError(loc))
 		}
 		if !ok {
-			return a.client.SendMessage(ctx, message.Chat.ID, textOnlyAdminsCanCreate(loc))
+			return a.client.SendMessage(ctx, message.Chat.ID, textOnlyAdminsCanChangeLanguage(loc))
 		}
 		if len(args) != 1 {
 			return a.client.SendMessage(ctx, message.Chat.ID, textLanguageUsage(loc))
@@ -160,13 +168,6 @@ func (a *App) handleMessage(ctx context.Context, message Message) error {
 		}
 		return a.client.SendMessage(ctx, message.Chat.ID, textLanguageSet(selected, selected))
 	case "/createpolls":
-		ok, err := a.isAdmin(ctx, message.Chat, message.From)
-		if err != nil {
-			return a.client.SendMessage(ctx, message.Chat.ID, textVerifyAdminError(loc))
-		}
-		if !ok {
-			return a.client.SendMessage(ctx, message.Chat.ID, textOnlyAdminsCanCreate(loc))
-		}
 		day := time.Now().In(a.cfg.TimeZone)
 		if len(args) == 1 {
 			parsed, err := time.ParseInLocation("2006-01-02", args[0], a.cfg.TimeZone)
@@ -378,7 +379,10 @@ func (a *App) createPollsForDate(ctx context.Context, chatID int64, day time.Tim
 	}
 
 	if allExist && firstExistingSet {
-		return a.client.SendMessage(ctx, chatID, textPollsAlreadyCreated(loc, buildChatMessageLink(chatID, firstExisting.PollMessageID)))
+		if err := a.client.SendReply(ctx, chatID, firstExisting.PollMessageID, textPollsAlreadyCreated(loc)); err == nil {
+			return nil
+		}
+		return a.client.SendMessage(ctx, chatID, textPollsAlreadyCreatedFallback(loc))
 	}
 
 	return a.client.SendMessage(ctx, chatID, textCreatedPolls(loc, start, end))
@@ -724,15 +728,6 @@ func formatCountdown(from, to time.Time) string {
 		return fmt.Sprintf("%dh", hours)
 	}
 	return fmt.Sprintf("%dh %dm", hours, minutes)
-}
-
-func buildChatMessageLink(chatID, messageID int64) string {
-	if chatID < 0 {
-		internalID := strconv.FormatInt(-chatID, 10)
-		internalID = strings.TrimPrefix(internalID, "100")
-		return fmt.Sprintf("https://t.me/c/%s/%d", internalID, messageID)
-	}
-	return fmt.Sprintf("message id %d", messageID)
 }
 
 func (a *App) registerCommandMenus(ctx context.Context) error {

@@ -49,10 +49,10 @@ func TestArmeniaDayWindow(t *testing.T) {
 	}
 
 	start, end := ArmeniaDayWindow(time.Date(2026, 6, 18, 9, 0, 0, 0, loc), loc)
-	if got := start.Format(time.RFC3339); got != "2026-06-18T20:00:00+04:00" {
+	if got := start.Format(time.RFC3339); got != "2026-06-18T19:00:00+04:00" {
 		t.Fatalf("unexpected start: %s", got)
 	}
-	if got := end.Format(time.RFC3339); got != "2026-06-19T08:00:00+04:00" {
+	if got := end.Format(time.RFC3339); got != "2026-06-19T12:00:00+04:00" {
 		t.Fatalf("unexpected end: %s", got)
 	}
 }

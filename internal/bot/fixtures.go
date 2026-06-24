@@ -105,8 +105,8 @@ func (p *FixtureProvider) fetchPage(ctx context.Context) (string, error) {
 
 func ArmeniaDayWindow(day time.Time, loc *time.Location) (time.Time, time.Time) {
 	local := day.In(loc)
-	start := time.Date(local.Year(), local.Month(), local.Day(), 20, 0, 0, 0, loc)
-	end := start.Add(12 * time.Hour)
+	start := time.Date(local.Year(), local.Month(), local.Day(), 19, 0, 0, 0, loc)
+	end := start.Add(17 * time.Hour)
 	return start, end
 }
 

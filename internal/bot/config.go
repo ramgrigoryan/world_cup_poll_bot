@@ -55,7 +55,7 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	hour, err := parseIntEnv("DAILY_POLL_HOUR", 20)
+	hour, err := parseIntEnv("DAILY_POLL_HOUR", 19)
 	if err != nil {
 		return Config{}, err
 	}
