@@ -1,2 +1,5 @@
 .env
 data/state.json
+/data/bot.lock
+/bot
+/bot-linux-amd64

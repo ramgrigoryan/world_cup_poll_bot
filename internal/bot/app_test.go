@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -39,6 +40,60 @@ func TestComputeLeaderboard(t *testing.T) {
 	}
 	if stats[1].Username != "bob" || stats[1].Correct != 1 || stats[1].Wrong != 1 {
 		t.Fatalf("unexpected second row: %+v", stats[1])
+	}
+}
+
+func TestFormatLeaderboardIncludesMatches(t *testing.T) {
+	store := &Store{
+		data: State{
+			Matches: map[string]MatchRecord{
+				"m1|100": {Fixture: Fixture{ID: "m1"}, FixtureID: "m1", PollID: "p1", PollChatID: 100, Result: "home", Settled: true},
+				"m2|100": {Fixture: Fixture{ID: "m2"}, FixtureID: "m2", PollID: "p2", PollChatID: 100, Result: "draw", Settled: true},
+			},
+			Predictions: map[string]map[int64]Prediction{
+				"p1": {
+					1: {UserID: 1, Username: "alice", Outcome: "home"},
+				},
+				"p2": {
+					1: {UserID: 1, Username: "alice", Outcome: "away"},
+				},
+			},
+		},
+	}
+
+	app := &App{store: store}
+	got := app.formatLeaderboard(100, localeEN)
+	want := "1. @alice | matches: 2 | correct: 1 | wrong: 1 | accuracy: 50.0%"
+	if !strings.Contains(got, want) {
+		t.Fatalf("leaderboard missing matches count:\n%s", got)
+	}
+}
+
+func TestComputeLeaderboardMergesSameUsernameAcrossDifferentUserIDs(t *testing.T) {
+	store := &Store{
+		data: State{
+			Matches: map[string]MatchRecord{
+				"m1|100": {Fixture: Fixture{ID: "m1"}, FixtureID: "m1", PollID: "p1", PollChatID: 100, Result: "home", Settled: true},
+				"m2|100": {Fixture: Fixture{ID: "m2"}, FixtureID: "m2", PollID: "p2", PollChatID: 100, Result: "away", Settled: true},
+			},
+			Predictions: map[string]map[int64]Prediction{
+				"p1": {
+					1: {UserID: 1, Username: "same_user", Outcome: "home"},
+				},
+				"p2": {
+					2: {UserID: 2, Username: "same_user", Outcome: "draw"},
+				},
+			},
+		},
+	}
+
+	app := &App{store: store}
+	stats := app.computeLeaderboard(100)
+	if len(stats) != 1 {
+		t.Fatalf("expected merged row count 1, got %d: %+v", len(stats), stats)
+	}
+	if stats[0].Username != "same_user" || stats[0].Correct != 1 || stats[0].Wrong != 1 {
+		t.Fatalf("unexpected merged leaderboard row: %+v", stats[0])
 	}
 }
 

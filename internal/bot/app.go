@@ -17,11 +17,18 @@ type App struct {
 	store    *Store
 	client   *TelegramClient
 	fixtures *FixtureProvider
+	lock     *InstanceLock
 }
 
 func NewApp(cfg Config) (*App, error) {
+	lock, err := AcquireInstanceLock(cfg.DataDir)
+	if err != nil {
+		return nil, err
+	}
+
 	store, err := NewStore(cfg.DataDir)
 	if err != nil {
+		lock.Release()
 		return nil, err
 	}
 
@@ -36,6 +43,7 @@ func NewApp(cfg Config) (*App, error) {
 	}
 	if len(cfg.GroupChatIDs) > 0 {
 		if err := store.Save(); err != nil {
+			lock.Release()
 			return nil, err
 		}
 	}
@@ -45,7 +53,15 @@ func NewApp(cfg Config) (*App, error) {
 		store:    store,
 		client:   NewTelegramClient(cfg.Token, cfg.ListenTimeout),
 		fixtures: NewFixtureProvider(cfg.FixturesSourceURL, cfg.TimeZone),
+		lock:     lock,
 	}, nil
+}
+
+func (a *App) Close() error {
+	if a == nil {
+		return nil
+	}
+	return a.lock.Release()
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -577,9 +593,10 @@ func (a *App) formatLeaderboard(chatID int64, loc locale) string {
 		}
 		name := formatUserLabel(row.Username)
 		lines = append(lines, fmt.Sprintf(
-			"%d. %s | correct: %d | wrong: %d | accuracy: %.1f%%",
+			"%d. %s | matches: %d | correct: %d | wrong: %d | accuracy: %.1f%%",
 			i+1,
 			name,
+			total,
 			row.Correct,
 			row.Wrong,
 			accuracy,
@@ -651,14 +668,15 @@ func (a *App) formatNextMatch(ctx context.Context, now time.Time, loc locale) (s
 }
 
 func (a *App) computeLeaderboard(chatID int64) []UserStats {
-	rows := make(map[int64]UserStats)
+	rows := make(map[string]UserStats)
 
 	for _, match := range a.store.MatchesForChat(chatID) {
 		if !match.Settled || match.PollID == "" {
 			continue
 		}
 		for _, prediction := range a.store.PredictionsForPoll(match.PollID) {
-			row := rows[prediction.UserID]
+			key := leaderboardUserKey(prediction)
+			row := rows[key]
 			if row.UserID == 0 {
 				row = UserStats{
 					UserID:   prediction.UserID,
@@ -670,7 +688,7 @@ func (a *App) computeLeaderboard(chatID int64) []UserStats {
 			} else {
 				row.Wrong++
 			}
-			rows[prediction.UserID] = row
+			rows[key] = row
 		}
 	}
 
@@ -690,6 +708,14 @@ func (a *App) computeLeaderboard(chatID int64) []UserStats {
 		return result[i].Correct > result[j].Correct
 	})
 	return result
+}
+
+func leaderboardUserKey(prediction Prediction) string {
+	username := strings.ToLower(strings.TrimSpace(prediction.Username))
+	if username != "" {
+		return "username:" + username
+	}
+	return "user_id:" + strconv.FormatInt(prediction.UserID, 10)
 }
 
 func formatUserLabel(name string) string {

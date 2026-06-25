@@ -57,6 +57,72 @@ set +a
 go run ./cmd/bot
 ```
 
+## Oracle Deploy
+
+The bot is designed to run as a single long-polling process. If you deploy it to a server, do not run the same bot token locally at the same time.
+
+Recommended server layout:
+
+- binary: `/opt/world-cup-poll-bot/bot`
+- data dir: `/opt/world-cup-poll-bot/data`
+- env file: `/etc/world-cup-poll-bot.env`
+- systemd service: `world-cup-poll-bot`
+
+Typical service management commands on the server:
+
+```bash
+sudo systemctl status world-cup-poll-bot
+sudo systemctl restart world-cup-poll-bot
+sudo systemctl stop world-cup-poll-bot
+journalctl -u world-cup-poll-bot -n 100
+journalctl -u world-cup-poll-bot -f
+```
+
+## Update On Oracle Server
+
+Build the Linux binary on your Mac:
+
+```bash
+cd /Users/vahram/Desktop/telegram-bot
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bot-linux-amd64 ./cmd/bot
+```
+
+Copy the new binary to the Oracle server:
+
+```bash
+scp -i ~/.ssh/oci_worldcup_bot bot-linux-amd64 ubuntu@YOUR_SERVER_IP:/tmp/world-cup-poll-bot
+```
+
+Install the new binary on the server and restart the service:
+
+```bash
+ssh -i ~/.ssh/oci_worldcup_bot ubuntu@YOUR_SERVER_IP
+sudo mv /tmp/world-cup-poll-bot /opt/world-cup-poll-bot/bot
+sudo chown worldcup:worldcup /opt/world-cup-poll-bot/bot
+sudo chmod 755 /opt/world-cup-poll-bot/bot
+sudo systemctl restart world-cup-poll-bot
+sudo systemctl status world-cup-poll-bot
+journalctl -u world-cup-poll-bot -n 50
+```
+
+If the `.env` file changed, copy and install it too:
+
+```bash
+scp -i ~/.ssh/oci_worldcup_bot .env ubuntu@YOUR_SERVER_IP:/tmp/world-cup-poll-bot.env
+ssh -i ~/.ssh/oci_worldcup_bot ubuntu@YOUR_SERVER_IP
+sudo mv /tmp/world-cup-poll-bot.env /etc/world-cup-poll-bot.env
+sudo chown root:worldcup /etc/world-cup-poll-bot.env
+sudo chmod 640 /etc/world-cup-poll-bot.env
+sudo systemctl restart world-cup-poll-bot
+```
+
+Recommended server env values:
+
+```env
+BOT_DATA_DIR=/opt/world-cup-poll-bot/data
+BOT_TIMEZONE=Asia/Yerevan
+```
+
 ## Notes
 
 - Polls are non-anonymous so Telegram sends user vote updates to the bot.
